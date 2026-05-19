@@ -1,6 +1,7 @@
 import express from 'express'
 import { createServer } from 'http'
 import { Server } from 'socket.io'
+import { createMessage, createSystemMessage, isValidMessage } from './chat'
 
 const app = express()
 const httpServer = createServer(app)
@@ -15,28 +16,17 @@ io.on('connection', (socket) => {
 
     socket.on('join', (username: string) => {
         socket.data.username = username
-        io.emit('message', {
-            username: 'System',
-            text: `${username} joined the chat`,
-            time: new Date().toLocaleTimeString()
-        })
+        io.emit('message', createSystemMessage(`${username} joined the chat`))
     })
 
     socket.on('message', (text: string) => {
-        io.emit('message', {
-            username: socket.data.username,
-            text,
-            time: new Date().toLocaleTimeString()
-        })
+        if (!isValidMessage(text)) return
+        io.emit('message', createMessage(socket.data.username, text))
     })
 
     socket.on('disconnect', () => {
         if (socket.data.username) {
-            io.emit('message', {
-                username: 'System',
-                text: `${socket.data.username} left the chat`,
-                time: new Date().toLocaleTimeString()
-            })
+            io.emit('message', createSystemMessage(`${socket.data.username} left the chat`))
         }
         console.log(`User disconnected: ${socket.id}`)
     })
